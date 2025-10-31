@@ -1,17 +1,46 @@
 // src/lib/unzip.js
 import JSZip from "jszip";
 
-/**
- * Reads and lists all file paths inside a .zip file.
- * @param {File|Blob} file - the uploaded zip file
- * @returns {Promise<string[]>} list of file paths
- */
-export async function unzipFile(file) {
-  const zip = await JSZip.loadAsync(file); // load zip asynchronously
-  const files = [];
-  
-  // iterate through all files inside the archive
-  zip.forEach((path) => files.push(path));
+// ✅ Read all non-ignored files with content
+export async function unzipAndReadFiles(file) {
+  const blob = file instanceof Blob ? file : new Blob([file]);
+  const zip = await JSZip.loadAsync(blob);
 
-  return files; // return list of paths
+  const IGNORED = [".git", "node_modules", "dist", "build"];
+  const result = [];
+
+  for (const [filename, entry] of Object.entries(zip.files)) {
+    if (IGNORED.some(dir => filename.includes(dir))) continue;
+    if (entry.dir) continue;
+
+    // Skip very large files
+    if (entry._data && entry._data.uncompressedSize > 200000) continue;
+
+    try {
+      const content = await entry.async("string");
+      result.push({ path: filename, content });
+    } catch (err) {
+      console.warn(`Failed to read file ${filename}`, err);
+    }
+  }
+
+  return result;
 }
+
+// ✅ List file names (for display)
+export async function unzipFile(file) {
+  const blob = file instanceof Blob ? file : new Blob([file]);
+  const zip = await JSZip.loadAsync(blob);
+
+  const IGNORED = [".git", "node_modules", "dist", "build"];
+  const paths = [];
+
+  for (const [filename, entry] of Object.entries(zip.files)) {
+    if (IGNORED.some(dir => filename.includes(dir))) continue;
+    if (!entry.dir) paths.push(filename);
+  }
+
+  return paths;
+}
+
+export default unzipAndReadFiles;

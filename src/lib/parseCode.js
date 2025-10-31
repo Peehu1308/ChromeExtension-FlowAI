@@ -1,13 +1,17 @@
 // src/lib/parseCode.js
-export async function parseCode(filePath, code) {
-  return new Promise((resolve) => {
-    const worker = new Worker(new URL("../workers/parser.worker.js", import.meta.url));
+export async function parseCode(path, content) {
+  if (!content) return { path, error: "Empty file" };
 
-    worker.postMessage({ filePath, code });
+  const functions = [...content.matchAll(/\bfunction\s+([A-Za-z0-9_]+)/g)].map(m => m[1]);
+  const arrowFuncs = [...content.matchAll(/const\s+([A-Za-z0-9_]+)\s*=\s*\(/g)].map(m => m[1]);
+  const components = [...content.matchAll(/export\s+default\s+function\s+([A-Za-z0-9_]+)/g)].map(m => m[1]);
+  const comments = [...content.matchAll(/\/\/(.*)$|\/\*([\s\S]*?)\*\//gm)].map(m => m[1] || m[2]);
 
-    worker.onmessage = (e) => {
-      resolve(e.data); // { filePath, ast }
-      worker.terminate();
-    };
-  });
+  return {
+    path,
+    functionCount: functions.length + arrowFuncs.length,
+    functions: [...functions, ...arrowFuncs],
+    components,
+    commentCount: comments.length,
+  };
 }
