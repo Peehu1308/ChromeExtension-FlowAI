@@ -186,112 +186,115 @@ async function handleGithubDownload() {
 
       <div className="hero-content">
         <h1 className="hero-title">FlowDoc.ai</h1>
-        <p className="hero-subtitle">Your Local AI Code Interpreter</p>
+        <p className="hero-subtitle">Understand your code, intelligently and privately.</p>
         <p className="hero-description">
-          Upload your code or GitHub repository and let FlowDoc.ai explain, summarize, and
-          visualize your code — all on-device with Chrome’s Gemini Nano. Fast, private, and intelligent.
+          FlowDoc.ai runs locally in your browser, powered by Chrome’s Gemini Nano.  
+          Upload your project or GitHub repo to explore, summarize, and document your code instantly — all on-device.
         </p>
-        <a href="#app-panel" className="scroll-btn">Start Now ↓</a>
+        <a href="#app-panel" className="scroll-btn">Get Started</a>
       </div>
     </section>
 
     {/* --- MAIN APP PANEL --- */}
     <section id="app-panel" className="app-panel">
-      <div className="panel-header">
-        <h2 className="panel-title">Analyze Your Codebase</h2>
-        <p className="panel-subtitle">Upload a ZIP file or link a GitHub repo to begin.</p>
-      </div>
+      <div className="panel-inner">
+        <div className="panel-header">
+          <h2 className="panel-title">Explore Your Codebase</h2>
+          <p className="panel-subtitle">Upload a ZIP file or load directly from GitHub.</p>
+        </div>
 
-      {/* Upload */}
-      <label className="form-section">
-        <span className="label-text">Upload a ZIP file:</span>
-        <input type="file" accept=".zip" onChange={handleZipUpload} className="input-file" />
-      </label>
+        {/* Upload */}
+        <label className="form-section">
+          <span className="label-text">Upload a ZIP file:</span>
+          <input type="file" accept=".zip" onChange={handleZipUpload} className="input-file" />
+        </label>
 
-      {/* GitHub */}
-      <label className="form-section">
-        <span className="label-text">Or load from GitHub:</span>
-        <div className="input-group">
-          <input
-            type="text"
-            placeholder="https://github.com/user/repo"
-            value={repoUrl}
-            onChange={(e) => setRepoUrl(e.target.value)}
-            className="input-box"
-          />
-          <button onClick={handleGithubDownload} className="btn btn-blue">
-            Fetch
+        {/* GitHub */}
+        <label className="form-section">
+          <span className="label-text">Or GitHub Repository:</span>
+          <div className="input-group">
+            <input
+              type="text"
+              placeholder="https://github.com/user/repo"
+              value={repoUrl}
+              onChange={(e) => setRepoUrl(e.target.value)}
+              className="input-box"
+            />
+            <button onClick={handleGithubDownload} className="btn btn-blue">
+              Fetch
+            </button>
+          </div>
+        </label>
+
+        {/* Buttons */}
+        <div className="button-group">
+          <button
+            onClick={handleParse}
+            disabled={loading || files.length === 0}
+            className="btn btn-green"
+          >
+            {loading ? "Processing..." : "Parse Code Files"}
+          </button>
+
+          <button
+            onClick={handleSummarize}
+            disabled={loading || parsedFiles.length === 0}
+            className="btn btn-purple"
+          >
+            {loading ? "Processing..." : "Summarize Repository"}
           </button>
         </div>
-      </label>
 
-      {/* Buttons */}
-      <div className="button-group">
-        <button
-          onClick={handleParse}
-          disabled={loading || files.length === 0}
-          className="btn btn-green"
-        >
-          {loading ? "Processing..." : "Parse Code Files"}
-        </button>
+        {progress && <p className="progress-text">{progress}</p>}
 
-        <button
-          onClick={handleSummarize}
-          disabled={loading || parsedFiles.length === 0}
-          className="btn btn-purple"
-        >
-          {loading ? "Processing..." : "Summarize Repository"}
-        </button>
-      </div>
-
-      {progress && <p className="progress-text">{progress}</p>}
-
-      {/* File list */}
-      <div className="file-list-section">
-        <h3 className="section-subtitle">Files Found:</h3>
-        <input
-          placeholder="Search files..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="input-box"
-        />
-        <ul className="file-list">
-          {filteredFiles.length === 0 ? (
-            <li className="empty-text">No matching files found</li>
-          ) : (
-            filteredFiles.map((f) => <li key={f.path}>{f.path}</li>)
-          )}
-        </ul>
-      </div>
-
-      {/* Parsed Output */}
-      {parsedFiles.length > 0 && (
-        <div className="parsed-output">
-          <h3 className="section-subtitle">Parsed Output:</h3>
-          <pre className="code-box">{JSON.stringify(parsedFiles, null, 2)}</pre>
+        {/* File list */}
+        <div className="file-list-section">
+          <h3 className="section-subtitle">Files Found:</h3>
+          <input
+            placeholder="Search files..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="input-box"
+          />
+          <ul className="file-list">
+            {filteredFiles.length === 0 ? (
+              <li className="empty-text">No matching files found</li>
+            ) : (
+              filteredFiles.map((f) => <li key={f.path}>{f.path}</li>)
+            )}
+          </ul>
         </div>
-      )}
 
-      {/* AI Summary */}
-      {summary && (
-        <div className="summary-section">
-          <h3 className="section-subtitle">AI Summary:</h3>
-          <p className="summary-text">{summary}</p>
-        </div>
-      )}
+        {/* Parsed Output */}
+        {parsedFiles.length > 0 && (
+          <div className="parsed-output">
+            <h3 className="section-subtitle">Parsed Output:</h3>
+            <pre className="code-box">{JSON.stringify(parsedFiles, null, 2)}</pre>
+          </div>
+        )}
 
-      {parsedFiles.length > 0 && <CodeChat parsedFiles={parsedFiles} />}
-      {parsedFiles.length > 0 && (
-        <>
-          <h3 className="section-subtitle">Architecture Graph</h3>
-          <DependencyGraph data={parsedFiles} />
-        </>
-      )}
+        {/* AI Summary */}
+        {summary && (
+          <div className="summary-section">
+            <h3 className="section-subtitle">AI Summary:</h3>
+            <p className="summary-text">{summary}</p>
+          </div>
+        )}
 
-      <FileSummary parsedFiles={parsedFiles} />
+        {parsedFiles.length > 0 && <CodeChat parsedFiles={parsedFiles} />}
+        {parsedFiles.length > 0 && (
+          <>
+            <h3 className="section-subtitle">Architecture Graph</h3>
+            <DependencyGraph data={parsedFiles} />
+          </>
+        )}
+
+        <FileSummary parsedFiles={parsedFiles} />
+      </div>
     </section>
   </div>
 );
+
 
 
 
