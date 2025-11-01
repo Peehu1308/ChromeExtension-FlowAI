@@ -38,34 +38,58 @@ export default function FileUploader() {
   }
 
   // ✅ Fetch ZIP from GitHub
-  async function handleGithubDownload() {
-    if (!repoUrl) return alert("Please enter a GitHub repo URL");
-    setLoading(true);
-    setProgress("Downloading repo...");
+// ✅ Updated handleGithubDownload
+async function handleGithubDownload() {
+  if (!repoUrl) return alert("Please enter a GitHub repo URL");
+  setLoading(true);
+  setProgress("Fetching repository...");
 
-    try {
-      const repoPath = repoUrl
-        .replace("https://github.com/", "")
-        .replace(/\/$/, ""); // remove trailing slash
-      const apiUrl = `https://api.github.com/repos/${repoPath}/zipball`;
+  try {
+    // Extract <username>/<repo>
+    const repoPath = repoUrl
+      .replace("https://github.com/", "")
+      .replace(/\/$/, "");
 
-      const res = await fetch(apiUrl);
-      if (!res.ok) throw new Error(`Failed to fetch ZIP: ${res.statusText}`);
+    async function fetchZip(branch) {
+     const url = `https://api.allorigins.win/raw?url=https://api.github.com/repos/${repoPath}/zipball/${branch}`;
 
+      const res = await fetch(url);
+
+      if (!res.ok) throw new Error(`GitHub returned ${res.status}`);
       const buffer = await res.arrayBuffer();
-      const blob = new Blob([buffer]);
-      const fileList = await unzipAndReadFiles(blob);
 
-      setFiles(fileList);
-      setZipBlob(blob);
-      setProgress(`Loaded ${fileList.length} files`);
-    } catch (err) {
-      console.error("GitHub fetch error:", err);
-      alert("Failed to download or unzip the GitHub repo ZIP");
+      // Check if it's a valid ZIP (starts with "PK")
+      const bytes = new Uint8Array(buffer.slice(0, 2));
+      if (!(bytes[0] === 0x50 && bytes[1] === 0x4b)) {
+        throw new Error("Response is not a valid ZIP file");
+      }
+
+      return buffer;
     }
 
-    setLoading(false);
+    let zipBuffer;
+    try {
+      zipBuffer = await fetchZip("main");
+    } catch {
+      zipBuffer = await fetchZip("master");
+    }
+
+    setProgress("Unzipping files...");
+    const blob = new Blob([zipBuffer]);
+    const fileList = await unzipAndReadFiles(blob);
+
+    setFiles(fileList);
+    setZipBlob(blob);
+    setProgress(`✅ Loaded ${fileList.length} files successfully`);
+  } catch (err) {
+    console.error("GitHub fetch error:", err);
+    alert(`GitHub fetch failed: ${err.message}`);
   }
+
+  setLoading(false);
+}
+
+
 
   // ✅ Parse all .js / .ts files
   async function handleParse() {
