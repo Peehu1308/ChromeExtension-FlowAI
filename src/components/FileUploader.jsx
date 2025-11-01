@@ -151,7 +151,7 @@ export default function FileUploader() {
   );
 
   return (
-    <div className="p-4 flex flex-col gap-3 text-gray-800">
+    <div className="p-4 flex flex-col gap-3 text-gray-800 bg-red-800">
       <h1 className="text-lg font-bold">FlowDoc.ai</h1>
 
       {/* Upload */}
