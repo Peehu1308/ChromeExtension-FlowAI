@@ -175,108 +175,124 @@ async function handleGithubDownload() {
   );
 
   return (
-    <div className="p-4 flex flex-col gap-3 text-gray-800 bg-red-800">
-      <h1 className="text-lg font-bold">FlowDoc.ai</h1>
+  <div className="flowdoc-wrapper">
+    {/* --- HERO SECTION --- */}
+    <section className="hero-section">
+      <div className="particle-bg">
+        {[...Array(20)].map((_, i) => (
+          <div key={i} className="particle"></div>
+        ))}
+      </div>
+
+      <div className="hero-content">
+        <h1 className="hero-title">FlowDoc.ai</h1>
+        <p className="hero-subtitle">Your Local AI Code Interpreter</p>
+        <p className="hero-description">
+          Upload your code or GitHub repository and let FlowDoc.ai explain, summarize, and
+          visualize your code — all on-device with Chrome’s Gemini Nano. Fast, private, and intelligent.
+        </p>
+        <a href="#app-panel" className="scroll-btn">Start Now ↓</a>
+      </div>
+    </section>
+
+    {/* --- MAIN APP PANEL --- */}
+    <section id="app-panel" className="app-panel">
+      <div className="panel-header">
+        <h2 className="panel-title">Analyze Your Codebase</h2>
+        <p className="panel-subtitle">Upload a ZIP file or link a GitHub repo to begin.</p>
+      </div>
 
       {/* Upload */}
-      <label className="block">
-        <span className="text-sm">Upload a ZIP file:</span>
-        <input
-          type="file"
-          accept=".zip"
-          onChange={handleZipUpload}
-          className="mt-1 block w-full text-sm"
-        />
+      <label className="form-section">
+        <span className="label-text">Upload a ZIP file:</span>
+        <input type="file" accept=".zip" onChange={handleZipUpload} className="input-file" />
       </label>
 
       {/* GitHub */}
-      <label className="block">
-        <span className="text-sm">Or GitHub repo URL:</span>
-        <div className="flex gap-2 mt-1">
+      <label className="form-section">
+        <span className="label-text">Or load from GitHub:</span>
+        <div className="input-group">
           <input
             type="text"
             placeholder="https://github.com/user/repo"
             value={repoUrl}
             onChange={(e) => setRepoUrl(e.target.value)}
-            className="border rounded p-1 flex-1 text-sm"
+            className="input-box"
           />
-          <button
-            onClick={handleGithubDownload}
-            className="bg-blue-500 text-white px-3 py-1 rounded text-sm"
-          >
+          <button onClick={handleGithubDownload} className="btn btn-blue">
             Fetch
           </button>
         </div>
       </label>
 
-      {/* Parse */}
-      <button
-        onClick={handleParse}
-        disabled={loading || files.length === 0}
-        className="bg-green-600 text-white p-2 rounded text-sm"
-      >
-        {loading ? "Processing..." : "Parse Code Files"}
-      </button>
+      {/* Buttons */}
+      <div className="button-group">
+        <button
+          onClick={handleParse}
+          disabled={loading || files.length === 0}
+          className="btn btn-green"
+        >
+          {loading ? "Processing..." : "Parse Code Files"}
+        </button>
 
-      {/* 🧠 Summarize */}
-      <button
-        onClick={handleSummarize}
-        disabled={loading || parsedFiles.length === 0}
-        className="bg-purple-600 text-white p-2 rounded text-sm"
-      >
-        {loading ? "Processing..." : "Summarize Repository"}
-      </button>
+        <button
+          onClick={handleSummarize}
+          disabled={loading || parsedFiles.length === 0}
+          className="btn btn-purple"
+        >
+          {loading ? "Processing..." : "Summarize Repository"}
+        </button>
+      </div>
 
-      {progress && (
-        <p className="text-xs text-gray-500 italic">{progress}</p>
-      )}
+      {progress && <p className="progress-text">{progress}</p>}
 
-      {/* File list with search */}
-      <div>
-        <h3 className="font-bold text-sm mt-2">Files Found:</h3>
+      {/* File list */}
+      <div className="file-list-section">
+        <h3 className="section-subtitle">Files Found:</h3>
         <input
-          placeholder="🔍 Search files..."
+          placeholder="Search files..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="border p-1 rounded text-sm w-full mb-2"
+          className="input-box"
         />
-
-        <ul className="border rounded p-2 h-48 overflow-auto text-xs">
+        <ul className="file-list">
           {filteredFiles.length === 0 ? (
-            <li className="text-gray-400">No matching files found</li>
+            <li className="empty-text">No matching files found</li>
           ) : (
             filteredFiles.map((f) => <li key={f.path}>{f.path}</li>)
           )}
         </ul>
       </div>
 
-      {/* Parsed output */}
+      {/* Parsed Output */}
       {parsedFiles.length > 0 && (
-        <div>
-          <h3 className="font-bold mt-4 text-sm">Parsed Output:</h3>
-          <pre className="text-xs bg-gray-100 p-2 rounded h-48 overflow-auto">
-            {JSON.stringify(parsedFiles, null, 2)}
-          </pre>
+        <div className="parsed-output">
+          <h3 className="section-subtitle">Parsed Output:</h3>
+          <pre className="code-box">{JSON.stringify(parsedFiles, null, 2)}</pre>
         </div>
       )}
 
-      {/* 🧠 AI Summary Section */}
+      {/* AI Summary */}
       {summary && (
-        <div className="bg-purple-50 border border-purple-200 rounded p-3 mt-3">
-          <h3 className="font-bold text-sm text-purple-700">AI Summary:</h3>
-          <p className="whitespace-pre-wrap text-gray-700 text-sm mt-2">{summary}</p>
+        <div className="summary-section">
+          <h3 className="section-subtitle">AI Summary:</h3>
+          <p className="summary-text">{summary}</p>
         </div>
       )}
 
       {parsedFiles.length > 0 && <CodeChat parsedFiles={parsedFiles} />}
       {parsedFiles.length > 0 && (
         <>
-          <h3 className="font-bold mt-4 text-sm">📊 Architecture Graph</h3>
+          <h3 className="section-subtitle">Architecture Graph</h3>
           <DependencyGraph data={parsedFiles} />
         </>
       )}
 
       <FileSummary parsedFiles={parsedFiles} />
-    </div>
-  );
+    </section>
+  </div>
+);
+
+
+
 }
