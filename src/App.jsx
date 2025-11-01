@@ -1,6 +1,7 @@
 // src/App.jsx
 import React from "react";
 import FileUploader from "./components/FileUploader";
+import "./index.css";
 
 function App() {
   return (
