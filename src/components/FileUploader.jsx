@@ -1,8 +1,10 @@
 // src/components/FileUploader.jsx
 import React, { useState } from "react";
-import unzipFile, {unzipAndReadFiles } from "../lib/unzip";
+import unzipFile, { unzipAndReadFiles } from "../lib/unzip";
 import { parseCode } from "../lib/parseCode";
 import FileSummary from "./FileSummary";
+import CodeChat from "./CodeChat";
+import DependencyGraph from "./DependencyGraph";
 
 export default function FileUploader() {
   const [files, setFiles] = useState([]); // [{path, content}]
@@ -11,6 +13,8 @@ export default function FileUploader() {
   const [repoUrl, setRepoUrl] = useState("");
   const [zipBlob, setZipBlob] = useState(null);
   const [progress, setProgress] = useState("");
+  const [summary, setSummary] = useState(""); // 🧠 summary output
+  const [search, setSearch] = useState(""); // 🔍 search term
 
   // ✅ Upload ZIP from local disk
   async function handleZipUpload(event) {
@@ -92,6 +96,60 @@ export default function FileUploader() {
     setLoading(false);
   }
 
+  // 🧠 NEW: Local Summarization with Chrome Summarizer API (Gemini Nano)
+  async function handleSummarize() {
+    if (parsedFiles.length === 0) return alert("Parse code first!");
+    setLoading(true);
+    setProgress("Checking summarizer availability...");
+
+    try {
+      if (!("Summarizer" in self)) {
+        throw new Error("Summarizer API not supported. Use Chrome 138+ desktop.");
+      }
+
+      const availability = await Summarizer.availability();
+      console.log("📦 Summarizer availability:", availability);
+
+      if (availability === "unavailable") {
+        throw new Error("Summarizer model not available or not ready.");
+      }
+
+      const text = JSON.stringify(parsedFiles).slice(0, 15000);
+
+      // Create summarizer instance
+      const summarizer = await Summarizer.create({
+        type: "key-points", // or 'tldr' / 'headline'
+        format: "markdown",
+        length: "medium",
+        sharedContext: "Summarizing repository code structure and purpose for developers.",
+        monitor(m) {
+          m.addEventListener("downloadprogress", (e) => {
+            const percent = Math.round(e.loaded * 100);
+            setProgress(`📥 Downloading model... ${percent}%`);
+          });
+        },
+      });
+
+      setProgress("Generating summary...");
+      const summaryText = await summarizer.summarize(text, {
+        context: "This is a JavaScript/React project. Summarize its purpose and modules clearly.",
+      });
+
+      setSummary(summaryText);
+      setProgress("✅ Summary ready!");
+    } catch (err) {
+      console.error("Summarization error:", err);
+      alert(`Failed to summarize: ${err.message}`);
+    }
+
+    setLoading(false);
+  }
+
+  // 🔍 Filtered file list based on search term
+  const filteredFiles = files.filter((f) =>
+    f.path.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
     <div className="p-4 flex flex-col gap-3 text-gray-800">
       <h1 className="text-lg font-bold">FlowDoc.ai</h1>
@@ -136,18 +194,34 @@ export default function FileUploader() {
         {loading ? "Processing..." : "Parse Code Files"}
       </button>
 
+      {/* 🧠 Summarize */}
+      <button
+        onClick={handleSummarize}
+        disabled={loading || parsedFiles.length === 0}
+        className="bg-purple-600 text-white p-2 rounded text-sm"
+      >
+        {loading ? "Processing..." : "Summarize Repository"}
+      </button>
+
       {progress && (
         <p className="text-xs text-gray-500 italic">{progress}</p>
       )}
 
-      {/* File list */}
+      {/* File list with search */}
       <div>
         <h3 className="font-bold text-sm mt-2">Files Found:</h3>
+        <input
+          placeholder="🔍 Search files..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="border p-1 rounded text-sm w-full mb-2"
+        />
+
         <ul className="border rounded p-2 h-48 overflow-auto text-xs">
-          {files.length === 0 ? (
-            <li className="text-gray-400">No files loaded yet</li>
+          {filteredFiles.length === 0 ? (
+            <li className="text-gray-400">No matching files found</li>
           ) : (
-            files.map((f) => <li key={f.path}>{f.path}</li>)
+            filteredFiles.map((f) => <li key={f.path}>{f.path}</li>)
           )}
         </ul>
       </div>
@@ -162,8 +236,23 @@ export default function FileUploader() {
         </div>
       )}
 
+      {/* 🧠 AI Summary Section */}
+      {summary && (
+        <div className="bg-purple-50 border border-purple-200 rounded p-3 mt-3">
+          <h3 className="font-bold text-sm text-purple-700">AI Summary:</h3>
+          <p className="whitespace-pre-wrap text-gray-700 text-sm mt-2">{summary}</p>
+        </div>
+      )}
+
+      {parsedFiles.length > 0 && <CodeChat parsedFiles={parsedFiles} />}
+      {parsedFiles.length > 0 && (
+        <>
+          <h3 className="font-bold mt-4 text-sm">📊 Architecture Graph</h3>
+          <DependencyGraph data={parsedFiles} />
+        </>
+      )}
+
       <FileSummary parsedFiles={parsedFiles} />
     </div>
-    
   );
 }
